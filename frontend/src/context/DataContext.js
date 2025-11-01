@@ -2,8 +2,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Make sure to set REACT_APP_API_URL in your .env file
-// Example: REACT_APP_API_URL=http://localhost:5001/api
 const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 if (!API_BASE_URL) {
@@ -124,6 +122,61 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  // Fetch multi-year data for a specific district
+  const getMultiYearDistrictData = async (district) => {
+    if (!district) {
+      console.error('No district provided to getMultiYearDistrictData');
+      throw new Error('District name is required');
+    }
+
+    const url = `${API_BASE_URL}/district/${encodeURIComponent(district)}/all-years`;
+    console.log(`[FRONTEND] Fetching multi-year data from: ${url}`, { district });
+    
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        timeout: 15000, // 15 second timeout for multi-year data
+        withCredentials: false
+      });
+      
+      console.log('[FRONTEND] Received multi-year data from API:', response.data);
+      return response.data;
+      
+    } catch (err) {
+      console.error(`[FRONTEND] Error fetching multi-year data for ${district}:`, {
+        message: err.message,
+        url: err.config?.url,
+        method: err.config?.method,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        responseData: err.response?.data,
+        stack: err.stack
+      });
+      
+      // Handle 404 - No data available
+      if (err.response?.status === 404) {
+        return {
+          district_name: district,
+          years: {},
+          availableYears: [],
+          noData: true,
+          message: err.response.data?.message || 'No multi-year data available for the selected district'
+        };
+      }
+      
+      // If we have a response with data, use that as the error
+      if (err.response?.data) {
+        console.error('Error details:', err.response.data);
+        throw new Error(err.response.data.error || err.response.data.message || 'Failed to fetch multi-year district data');
+      }
+      
+      // If no response, use the error message or a generic one
+      throw new Error(err.message || 'Failed to fetch multi-year district data. Please try again later.');
+    }
+  };
+
   useEffect(() => {
     fetchDistricts();
   }, []);
@@ -134,7 +187,7 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   return (
-    <DataContext.Provider value={{ districts, error, fetchDistricts, getDistrictData }}>
+    <DataContext.Provider value={{ districts, error, fetchDistricts, getDistrictData, getMultiYearDistrictData }}>
       {children}
     </DataContext.Provider>
   );

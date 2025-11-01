@@ -17,8 +17,10 @@ import {
 
 const DistrictView = () => {
   const { district } = useParams();
-  const { getDistrictData } = useData();
+  const { getDistrictData, getMultiYearDistrictData } = useData();
   const [data, setData] = useState(null);
+  const [multiYearData, setMultiYearData] = useState(null);
+  const [multiYearDataCache, setMultiYearDataCache] = useState(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -53,6 +55,40 @@ const DistrictView = () => {
       window.history.replaceState({ path: newUrl }, '', newUrl);
     }
   }, [district]); // Re-run when district changes
+
+  // Function to load multi-year data for charts with caching
+  const loadMultiYearData = useCallback(async () => {
+    if (!district) return;
+    
+    // Check cache first
+    if (multiYearDataCache.has(district)) {
+      console.log(`[DistrictView] Using cached multi-year data for ${district}`);
+      setMultiYearData(multiYearDataCache.get(district));
+      return;
+    }
+    
+    try {
+      console.log(`[DistrictView] Loading multi-year data for district: ${district}`);
+      const result = await getMultiYearDistrictData(district);
+      
+      console.log(`[DistrictView] Multi-year data loaded for ${district}`, result);
+      
+      if (result?.noData || !result?.years || Object.keys(result.years).length === 0) {
+        console.log(`[DistrictView] No multi-year data available for ${district}`);
+        setMultiYearData(null);
+        // Cache the null result to avoid repeated failed requests
+        setMultiYearDataCache(prev => new Map(prev).set(district, null));
+        return;
+      }
+      
+      setMultiYearData(result);
+      // Cache the successful result
+      setMultiYearDataCache(prev => new Map(prev).set(district, result));
+    } catch (err) {
+      console.error('[DistrictView] Error fetching multi-year data:', err);
+      setMultiYearData(null);
+    }
+  }, [district, getMultiYearDistrictData, multiYearDataCache]);
 
   // Function to load data for the selected year
   const loadDataForYear = useCallback(async (year) => {
@@ -129,6 +165,16 @@ const DistrictView = () => {
     console.log(`[DistrictView] useEffect triggered - district: ${district}, year: ${selectedYear}`);
     loadDataForYear(selectedYear);
   }, [district, selectedYear, loadDataForYear]);
+
+  // Load multi-year data when district changes
+  useEffect(() => {
+    if (!district) return;
+    
+    console.log(`[DistrictView] Loading multi-year data for district: ${district}`);
+    console.log(`[DistrictView] Current multiYearData state:`, multiYearData);
+    console.log(`[DistrictView] Current multiYearDataCache:`, multiYearDataCache);
+    loadMultiYearData();
+  }, [district, loadMultiYearData]);
 
   // Show loading state
   if (isLoading) {
@@ -272,27 +318,32 @@ const DistrictView = () => {
     }
   };
 
-  // Prepare data for the chart - Group by year
+  // Prepare data for the chart using real multi-year data
   const chartData = financialYears.map(year => {
-    // In a real app, you would fetch data for each year here
-    // For now, we'll use the current data for all years with some variation
-    const yearData = {
+    // Use real data from multiYearData if available, otherwise use current data for selected year
+    let yearData = {
       year,
-      'Expenditure (₹Cr)': data.total_expenditure ? 
-        (data.total_expenditure / 100) * (0.8 + Math.random() * 0.4) : 0, // Add some variation
-      'Households Worked (in K)': data.households_worked ? 
-        Math.round(data.households_worked * (0.8 + Math.random() * 0.4) / 1000) : 0,
-      'Works Completed': data.works_completed ? 
-        Math.round(data.works_completed * (0.8 + Math.random() * 0.4)) : 0,
-      'Women Person-Days (in K)': data.women_persondays ? 
-        Math.round((data.women_persondays * (0.8 + Math.random() * 0.4)) / 1000) : 0,
-      'Avg Daily Wage (₹)': data.avg_wage_per_day ? 
-        Math.round(data.avg_wage_per_day * (0.95 + Math.random() * 0.1)) : 0
+      'Expenditure (₹Cr)': 0,
+      'Households Worked (in K)': 0,
+      'Works Completed': 0,
+      'Women Person-Days (in K)': 0,
+      'Avg Daily Wage (₹)': 0
     };
     
-    // For the current selected year, use actual data
-    if (year === selectedYear) {
-      return {
+    if (multiYearData?.years?.[year]) {
+      // Use real historical data
+      const realData = multiYearData.years[year];
+      yearData = {
+        year,
+        'Expenditure (₹Cr)': realData.total_expenditure ? (realData.total_expenditure / 100) : 0,
+        'Households Worked (in K)': realData.households_worked ? Math.round(realData.households_worked / 1000) : 0,
+        'Works Completed': realData.works_completed || 0,
+        'Women Person-Days (in K)': realData.women_persondays ? Math.round(realData.women_persondays / 1000) : 0,
+        'Avg Daily Wage (₹)': realData.avg_wage_per_day || 0
+      };
+    } else if (year === selectedYear && data) {
+      // Use current data for selected year if no historical data available
+      yearData = {
         year,
         'Expenditure (₹Cr)': data.total_expenditure ? (data.total_expenditure / 100) : 0,
         'Households Worked (in K)': data.households_worked ? Math.round(data.households_worked / 1000) : 0,
@@ -304,6 +355,12 @@ const DistrictView = () => {
     
     return yearData;
   }).reverse(); // Show most recent years first
+  
+  // Debug: Log chart data to see what's being generated
+  console.log('[DistrictView] Chart data prepared:', chartData);
+  console.log('[DistrictView] Multi-year data available:', multiYearData);
+  console.log('[DistrictView] Selected year:', selectedYear);
+  console.log('[DistrictView] Current data for selected year:', data);
   
   // For the bar chart, we'll separate metrics into different charts
   const employmentData = chartData.map(item => ({
@@ -572,10 +629,28 @@ const DistrictView = () => {
           </div>
 
           <div className="space-y-8">
+            {/* Multi-year data loading indicator */}
+            {!multiYearData && (
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Historical Data:</strong> Charts below show comparison across all years. Historical data is being loaded...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Expenditure Trend */}
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Money Spent / एकूण खर्च</h3>
-              <p className="text-sm text-gray-600 mb-4">Amount in Crores (करोड रुपयांमध्ये)</p>
+              <p className="text-sm text-gray-600 mb-4">Amount in Crores (करोड रुपयांमध्ये) - Comparison across all years</p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -614,7 +689,7 @@ const DistrictView = () => {
             {/* Employment Metrics */}
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Families & Works / कुटुंबे आणि कामे</h3>
-              <p className="text-sm text-gray-600 mb-4">Number of families who got work and projects completed</p>
+              <p className="text-sm text-gray-600 mb-4">Number of families who got work and projects completed - Comparison across all years</p>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -675,7 +750,7 @@ const DistrictView = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Women Person-Days / महिला कामगारांचे दिवस</h3>
-                <p className="text-sm text-gray-600 mb-4">Number of workdays in Lakhs (लाख मध्ये)</p>
+                <p className="text-sm text-gray-600 mb-4">Number of workdays in Lakhs (लाख मध्ये) - All years</p>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -709,7 +784,8 @@ const DistrictView = () => {
               </div>
 
               <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Average Daily Wage (₹)</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Average Daily Wage (₹)</h3>
+                <p className="text-sm text-gray-600 mb-4">Daily wage trends - All years</p>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
