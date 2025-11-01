@@ -30,29 +30,9 @@ const FINANCIAL_YEARS = [
   '2024-25', '2023-24', '2022-23', '2021-22', '2020-21'
 ];
 
-// Parse command line arguments
-const args = process.argv.slice(2);
+// These will be set when script is run directly
 let stateName = '';
 let financialYear = '';
-
-// Parse command line arguments
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--state' && args[i + 1]) {
-    stateName = args[++i];
-  } else if (args[i] === '--year' && args[i + 1]) {
-    financialYear = args[++i];
-  }
-}
-
-// Validate required parameters
-if (!stateName || !financialYear) {
-  console.error('Error: Both --state and --year parameters are required');
-  console.log('Usage: node scripts/populateDatabase.js --state "STATE_NAME" --year "YYYY-YY"');
-  console.log('Example: node scripts/populateDatabase.js --state "MAHARASHTRA" --year "2023-24"');
-  process.exit(1);
-}
-
-console.log(`Fetching data for State: ${stateName}, Year: ${financialYear}`);
 
 /**
  * Fetches data from the API with the given parameters
@@ -446,5 +426,25 @@ module.exports = {
 
 // Run the population script only if this file is executed directly
 if (require.main === module) {
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--state' && args[i + 1]) {
+      stateName = args[++i];
+    } else if (args[i] === '--year' && args[i + 1]) {
+      financialYear = args[++i];
+    }
+  }
+
+  // Validate required parameters
+  if (!stateName || !financialYear) {
+    console.error('Error: Both --state and --year parameters are required');
+    console.log('Usage: node scripts/populateDatabase.js --state "STATE_NAME" --year "YYYY-YY"');
+    console.log('Example: node scripts/populateDatabase.js --state "MAHARASHTRA" --year "2023-24"');
+    process.exit(1);
+  }
+
+  console.log(`Fetching data for State: ${stateName}, Year: ${financialYear}`);
   populateDatabase();
 }

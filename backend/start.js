@@ -43,13 +43,17 @@ async function populateDatabase() {
   return new Promise((resolve, reject) => {
     console.log('\n=== Populating database with Maharashtra data ===\n');
     
+    // Use the full path to the script
+    const scriptPath = path.join(__dirname, 'scripts', 'populateDatabase.js');
+    
     const populate = spawn('node', [
-      'scripts/populateDatabase.js',
+      scriptPath,
       '--state', 'MAHARASHTRA',
       '--year', '2023-24'
     ], {
       cwd: __dirname,
-      stdio: 'inherit'
+      stdio: 'inherit',
+      shell: true  // Use shell for better path resolution
     });
 
     populate.on('close', (code) => {
@@ -58,13 +62,17 @@ async function populateDatabase() {
         resolve();
       } else {
         console.error(`\nDatabase population failed with code ${code}\n`);
-        reject(new Error(`Population script exited with code ${code}`));
+        // Continue with server start even if population fails
+        console.log('Continuing with server start...');
+        resolve();
       }
     });
 
     populate.on('error', (err) => {
       console.error('Error running population script:', err);
-      reject(err);
+      // Continue with server start even if population fails
+      console.log('Continuing with server start despite population error...');
+      resolve();
     });
   });
 }
