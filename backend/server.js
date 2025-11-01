@@ -294,17 +294,12 @@ async function fetchFromAPI(state, district, year) {
     }
 }
 
-// ... (keep all the existing code until the static file serving part)
-
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // Handle all other routes by serving the React app's index.html
-app.use((req, res, next) => {
-    // Skip API routes
-    if (req.path.startsWith('/api')) {
-        return next();
-    }
+// This should be the LAST route handler (after all API routes)
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build/index.html'), err => {
         if (err) {
             // If the file doesn't exist, it means the frontend hasn't been built yet
@@ -315,7 +310,7 @@ app.use((req, res, next) => {
                     <pre>cd ../frontend && npm run build</pre>
                 `);
             } else {
-                next(err);
+                res.status(500).send('Error loading the application');
             }
         }
     });
