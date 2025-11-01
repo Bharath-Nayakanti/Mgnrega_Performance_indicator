@@ -15,19 +15,14 @@ const Navbar = () => {
                 className="text-xl font-bold text-blue-600 flex items-center"
               >
                 <FaHome className="mr-2" />
-                MGNREGA Telangana
+                MGNREGA Maharashtra
               </Link>
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
-            <Link
-              to="/"
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Home
-            </Link>
+            
             <a
-              href="https://nrega.nic.in/netnrega/home.aspx"
+              href="https://nrega.dord.gov.in/MGNREGA_new/Nrega_home.aspx"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
