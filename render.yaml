@@ -14,14 +14,10 @@ services:
         value: production
 
   # Frontend Static Site
-  - type: web
+  - type: static
     name: Mgnrega_Performance_indicator
-    runtime: static
-    env: static
-    plan: free
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: build
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
     envVars:
       - key: REACT_APP_API_URL
         sync: false
