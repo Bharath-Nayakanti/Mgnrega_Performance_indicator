@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "start": "node start.js",
     "dev": "node start.js",
+    "server": "node server.js",
     "clean-db": "node scripts/cleanDatabase.js",
     "populate-db": "node scripts/populateDatabase.js --state MAHARASHTRA --year 2023-24",
-    "refresh-db": "npm run clean-db && npm run populate-db"
+    "refresh-db": "npm run clean-db && npm run populate-db",
+    "build": "echo 'Backend build complete'"
   },
   "keywords": [],
   "author": "",

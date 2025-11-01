@@ -120,6 +120,34 @@ cd ../backend
 npm start
 ```
 
+## Deployment
+
+### Deploy to Render (Recommended)
+
+Quick deployment in 5 minutes:
+
+1. **Push to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Deploy to Render"
+   git push origin main
+   ```
+
+2. **Deploy on Render**:
+   - Go to [Render Dashboard](https://dashboard.render.com/)
+   - Click "New +" → "Blueprint"
+   - Connect your repository
+   - Render auto-detects `render.yaml`
+   - Click "Apply"
+
+3. **Configure Frontend**:
+   - After backend deploys, copy its URL
+   - Update frontend env: `REACT_APP_API_URL=https://YOUR-BACKEND.onrender.com/api`
+
+**📖 Full Guide**: See [RENDER_QUICKSTART.md](./RENDER_QUICKSTART.md) for detailed instructions
+
+**Free Tier**: Both frontend and backend deploy free with automatic HTTPS!
+
 ## Available Scripts
 
 ### Backend
