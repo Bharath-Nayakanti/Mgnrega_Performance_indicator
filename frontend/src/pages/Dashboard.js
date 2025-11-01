@@ -25,7 +25,6 @@ const Dashboard = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (selectedDistrict) {
-      // Ensure the year is properly URL-encoded
       const yearParam = encodeURIComponent(selectedYear);
       navigate(`/district/${selectedDistrict}?year=${yearParam}`);
     }
@@ -59,7 +58,7 @@ const Dashboard = () => {
             <div className="mt-4">
               <button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700"
               >
                 Try Again
               </button>
@@ -70,11 +69,11 @@ const Dashboard = () => {
     );
   }
 
-  // Show empty state if no districts are available
+  // Show empty state
   if (!districts || districts.length === 0) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -84,7 +83,7 @@ const Dashboard = () => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-yellow-800">No districts available</h3>
               <div className="mt-2 text-sm text-yellow-700">
-                <p>We couldn't find any district data. Please try again later or contact support if the issue persists.</p>
+                <p>We couldn't find any district data. Please try again later.</p>
               </div>
             </div>
           </div>
@@ -141,7 +140,7 @@ const Dashboard = () => {
                   id="year"
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md h-12"
+                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-10 py-3 text-base border-gray-300 rounded-md h-12"
                 >
                   {financialYears.map((year) => (
                     <option key={year} value={year}>
@@ -156,7 +155,7 @@ const Dashboard = () => {
           <div>
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               disabled={!selectedDistrict}
             >
               <FaSearch className="mr-2 h-5 w-5" />
@@ -165,55 +164,51 @@ const Dashboard = () => {
           </div>
         </form>
 
-        <div className="mt-6 text-center">
+        {/* ✅ Fixed "Use My Location" Section */}
+        <div className="mt-8 flex flex-col items-center gap-2">
           <button
             onClick={async () => {
               if (!navigator.geolocation) {
-                setLocationStatus('Location not supported by browser');
+                setLocationStatus('❌ Location not supported by browser');
                 return;
               }
               
-              setLocationStatus('Detecting location...');
+              setLocationStatus('📍 Detecting location...');
               
               navigator.geolocation.getCurrentPosition(
                 async (position) => {
                   try {
                     const { latitude, longitude } = position.coords;
-                    
                     const response = await fetch(
                       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
                     );
                     const data = await response.json();
-                    
                     const detectedDistrict = data.address?.state_district || data.address?.county || '';
-                    
                     const matchedDistrict = districts.find(d => 
                       d.toUpperCase().includes(detectedDistrict.toUpperCase()) ||
                       detectedDistrict.toUpperCase().includes(d.toUpperCase())
                     );
-                    
                     if (matchedDistrict) {
                       setSelectedDistrict(matchedDistrict);
-                      setLocationStatus(`Location detected: ${matchedDistrict}`);
+                      setLocationStatus(`✅ Location detected: ${matchedDistrict}`);
                     } else {
-                      setLocationStatus(`Detected: ${detectedDistrict}. Please select manually.`);
+                      setLocationStatus(`⚠️ Detected: ${detectedDistrict}. Please select manually.`);
                     }
-                  } catch (error) {
-                    setLocationStatus('Could not determine district. Please select manually.');
+                  } catch {
+                    setLocationStatus('❌ Could not determine district. Please select manually.');
                   }
                 },
-                (error) => {
-                  setLocationStatus('Location access denied. Please select manually.');
-                }
+                () => setLocationStatus('⚠️ Location access denied. Please select manually.')
               );
             }}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center mx-auto"
+            className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-2"
           >
-            <FaMapMarkerAlt className="mr-1" />
+            <FaMapMarkerAlt className="text-blue-600 h-4 w-4" />
             Use My Location
           </button>
+
           {locationStatus && (
-            <p className="mt-2 text-sm text-gray-600">{locationStatus}</p>
+            <p className="text-gray-600 text-sm text-center max-w-md">{locationStatus}</p>
           )}
         </div>
       </div>
