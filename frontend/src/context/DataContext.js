@@ -36,19 +36,17 @@ export const DataProvider = ({ children }) => {
   // Normalize year format (convert YYYY-YYYY to YYYY-YY)
   const normalizeYear = (year) => {
     if (!year) return '2023-24';
-    
-    // If already in YYYY-YY format, return as is
+
     if (/^\d{4}-\d{2}$/.test(year)) {
       return year;
     }
-    
-    // Convert YYYY-YYYY to YYYY-YY
+
     const match = year.match(/^(\d{4})-(\d{4})$/);
     if (match) {
       return `${match[1]}-${match[2].substring(2)}`;
     }
-    
-    return year; // Return as is if format is unexpected
+
+    return year;
   };
 
   // Fetch data for a specific district and year

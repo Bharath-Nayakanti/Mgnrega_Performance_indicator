@@ -36,6 +36,14 @@ const DistrictView = () => {
   // State for selected year - will be set from URL
   const [selectedYear, setSelectedYear] = useState('');
 
+  const normalizeUiYear = useCallback((year) => {
+    if (!year) return year;
+    if (/^\d{4}-\d{2}$/.test(year)) return year;
+
+    const match = year.match(/^(\d{4})-(\d{4})$/);
+    return match ? `${match[1]}-${match[2].substring(2)}` : year;
+  }, []);
+
   // Get year from URL query params and update selectedYear
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -125,9 +133,9 @@ const DistrictView = () => {
       // Clear any previous errors if the request was successful
       setError(null);
       
-      // Show warning if the year doesn't match
-      if (result?.fin_year && result.fin_year !== year) {
-        const warningMsg = `No data available for ${year}. Showing data for ${result.fin_year} instead.`;
+      // Show warning if the year doesn't match after normalizing both values to the same UI format.
+      if (result?.fin_year && normalizeUiYear(result.fin_year) !== normalizeUiYear(year)) {
+        const warningMsg = `No data available for ${year}. Showing data for ${normalizeUiYear(result.fin_year)} instead.`;
         console.warn(warningMsg);
         setError({
           message: warningMsg,
@@ -155,7 +163,7 @@ const DistrictView = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [district, getDistrictData]);
+  }, [district, getDistrictData, normalizeUiYear]);
 
   // Load data when district or selectedYear changes
   useEffect(() => {

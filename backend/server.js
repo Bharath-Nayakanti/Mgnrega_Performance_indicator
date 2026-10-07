@@ -236,23 +236,34 @@ function buildFallbackDistrictData(district, year) {
     };
 }
 
-// Helper function to normalize year format
+// Normalize fiscal year to the UI format YYYY-YY while treating YYYY-YYYY and YYYY-YY as the same value.
 function normalizeYear(year) {
     if (!year) return null;
-    
-    // If already in YYYY-YYYY format, return as is
+
+    if (/^\d{4}-\d{2}$/.test(year)) {
+        return year;
+    }
+
+    const match = year.match(/^(\d{4})-(\d{4})$/);
+    if (match) {
+        return `${match[1]}-${match[2].substring(2)}`;
+    }
+
+    return year;
+}
+
+function expandYearFormat(year) {
+    if (!year) return null;
+
     if (/^\d{4}-\d{4}$/.test(year)) {
         return year;
     }
-    
-    // Convert YYYY-YY to YYYY-YYYY
+
     const match = year.match(/^(\d{4})-(\d{2})$/);
     if (match) {
-        const startYear = match[1];
-        const endYear = `20${match[2]}`; // Assuming 21st century
-        return `${startYear}-${endYear}`;
+        return `${match[1]}-${Number(match[1]) + 1}`;
     }
-    
+
     return year;
 }
 
@@ -271,10 +282,10 @@ function getDataFromDatabase(state, district, year) {
             params.push(district);
         }
         if (year) {
-            // Normalize year format to match database
-            const normalizedYear = normalizeYear(year);
+            // Store/retrieve using the database format (YYYY-YYYY), while UI uses YYYY-YY
+            const databaseYear = expandYearFormat(year);
             query += ' AND financial_year = ?';
-            params.push(normalizedYear);
+            params.push(databaseYear);
         }
         
         // Order by month descending to get most recent data first
@@ -400,4 +411,4 @@ if (require.main === module) {
     startServer();
 }
 
-module.exports = { app, startServer };
+module.exports = { app, startServer, normalizeYear, expandYearFormat };
