@@ -297,9 +297,9 @@ async function fetchFromAPI(state, district, year) {
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-// Handle all other routes by serving the React app's index.html
-// This should be the LAST route handler (after all API routes)
-app.get('*', (req, res) => {
+// Handle non-API routes by serving the React app's index.html.
+// This avoids Express 5 wildcard syntax crashes while keeping /api routes live.
+app.get(/^(?!\/api).*$/, (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build/index.html'), err => {
         if (err) {
             // If the file doesn't exist, it means the frontend hasn't been built yet
@@ -325,34 +325,43 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-const server = app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`API available at http://localhost:${PORT}/api`);
-    
-    // Initialize scheduler
-    console.log('\nInitializing data update scheduler...');
-    startScheduler();
-    
-    // Check if data needs initial update
-    await checkAndInitialUpdate();
-});
-
-// Handle process termination
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Shutting down gracefully...');
-    db.close();
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
+function startServer() {
+    const server = app.listen(PORT, '0.0.0.0', async () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`API available at http://localhost:${PORT}/api`);
+        
+        // Initialize scheduler
+        console.log('\nInitializing data update scheduler...');
+        startScheduler();
+        
+        // Check if data needs initial update
+        await checkAndInitialUpdate();
     });
-});
 
-process.on('SIGINT', () => {
-    console.log('\nSIGINT received. Shutting down gracefully...');
-    db.close();
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
+    // Handle process termination
+    process.on('SIGTERM', () => {
+        console.log('SIGTERM received. Shutting down gracefully...');
+        db.close();
+        server.close(() => {
+            console.log('Server closed');
+            process.exit(0);
+        });
     });
-});
+
+    process.on('SIGINT', () => {
+        console.log('\nSIGINT received. Shutting down gracefully...');
+        db.close();
+        server.close(() => {
+            console.log('Server closed');
+            process.exit(0);
+        });
+    });
+
+    return server;
+}
+
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = { app, startServer };
