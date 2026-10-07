@@ -2,11 +2,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
 
-if (!API_BASE_URL) {
-  console.error('REACT_APP_API_URL is not set in the environment variables');
-  console.log('Current environment variables:', process.env);
+if (!process.env.REACT_APP_API_URL) {
+  console.warn('REACT_APP_API_URL is not set; using same-origin /api fallback.');
 }
 
 const DataContext = createContext();
