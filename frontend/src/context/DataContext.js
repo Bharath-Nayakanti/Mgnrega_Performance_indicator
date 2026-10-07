@@ -2,12 +2,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+const DEFAULT_API_BASE_URL = 'https://mgnrega-performance-indicator.onrender.com/api';
+
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
+  process.env.REACT_APP_API_URL || DEFAULT_API_BASE_URL;
 
 if (!process.env.REACT_APP_API_URL) {
-  console.warn('REACT_APP_API_URL is not set; using same-origin /api fallback.');
+  console.warn('REACT_APP_API_URL is not set; using backend API default:', DEFAULT_API_BASE_URL);
 }
 
 const DataContext = createContext();
